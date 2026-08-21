@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A股市场结构仪 Demo</title>
+  <style>
+    :root{--bg:#f6f7f9;--panel:#fff;--soft:#f4f7fb;--line:#dfe4ea;--ink:#1e2630;--muted:#687384;--blue:#2f73df;--blue2:#e8f1ff;--red:#ef4b4b;--green:#238b63;--amber:#d79522}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}.shell{max-width:1180px;margin:0 auto;padding:28px 18px 44px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}.eyebrow{margin:0 0 6px;color:var(--blue);font-size:12px;font-weight:800}.top h1{margin:0;font-size:34px;line-height:1.08}.pill{border:1px solid #bdd5fb;background:#fff;color:var(--blue);border-radius:999px;padding:9px 13px;font-size:13px;font-weight:760;white-space:nowrap}.hero{display:grid;grid-template-columns:1fr 220px;gap:20px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgb(38 55 77/.07);padding:22px;margin-bottom:14px}.mark{width:56px;height:56px;border:1px solid #dce8f7;background:#f7faff;border-radius:9px;display:grid;gap:5px;padding:10px;float:left;margin-right:16px}.mark i{display:block;height:5px;border-radius:999px;background:linear-gradient(90deg,#2f73df,#8fc0ff)}.mark i:nth-child(2){width:72%;background:linear-gradient(90deg,#1f8a70,#9fd7c8)}.mark i:nth-child(3){width:86%;background:linear-gradient(90deg,#d19128,#ffd780)}.mark i:nth-child(4){width:58%;background:linear-gradient(90deg,#dc4a4a,#ff9b9b)}.hero p{margin:0;color:var(--muted);line-height:1.75}.score{background:linear-gradient(180deg,#fbfdff,#f5f9ff);border:1px solid #cfe0f7;border-radius:9px;padding:16px;text-align:center}.score span,.score em{display:block;color:var(--muted);font-size:12px;font-style:normal}.score strong{display:block;color:var(--blue);font-size:42px;line-height:1;margin:9px 0}.metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px}.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;min-height:112px}.card.active{background:var(--blue2);border-color:#9fc3ff;box-shadow:inset 3px 0 0 var(--blue)}.card span{display:block;color:#263445;font-size:14px;font-weight:800;line-height:1.25;min-height:34px}.card strong{display:block;font-size:28px;line-height:1;margin:10px 0}.card em{color:var(--muted);font-size:13px;font-style:normal}.panel{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 22px rgb(38 55 77/.05);padding:18px;margin-bottom:14px}.title{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:15px}.title h2{border-left:4px solid var(--blue);padding-left:12px;margin:0;font-size:22px}.title p{margin:0;color:var(--muted);line-height:1.6;max-width:660px}.chart{height:230px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(#fff,#fbfdff);position:relative;overflow:hidden;margin-bottom:14px}.grid{position:absolute;inset:18px 20px;background:repeating-linear-gradient(to bottom,transparent 0 43px,#e6ebf1 44px),repeating-linear-gradient(to right,transparent 0 92px,#eef2f6 93px)}svg{position:absolute;inset:0;width:100%;height:100%}.legend{display:flex;gap:18px;color:#526073;font-size:13px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.red{background:var(--red)}.blue{background:var(--blue)}.tan{background:#e5d3ad}.readouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.readouts div{background:var(--soft);border-radius:8px;padding:12px}.readouts span{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.readouts strong{font-size:22px}.spec{border:1px solid var(--line);border-radius:9px;overflow:hidden}.row,.head{display:grid;grid-template-columns:140px 1.3fr 1fr 1fr 150px}.head{background:#f3f7fd}.head span,.row>*{padding:12px;border-right:1px solid var(--line);font-size:13px;line-height:1.55}.head span:last-child,.row>*:last-child{border-right:0}.row{border-top:1px solid var(--line)}.head span{font-weight:800;color:#415168}.row strong{font-size:14px}.row code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#344052}.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.step{background:#f7faff;border:1px solid #dce8f7;border-radius:9px;padding:14px}.step span{display:block;color:var(--blue);font-size:12px;font-weight:800;margin-bottom:8px}.step strong{font-size:15px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.list{display:grid;gap:10px}.list div{background:#fbfcfe;border:1px solid var(--line);border-radius:8px;padding:12px}.list code{display:block;color:var(--blue);font-weight:760;margin-bottom:7px}.list span,.list p{color:var(--muted);font-size:13px;line-height:1.6;margin:0}.note{display:flex;gap:14px;color:var(--muted);line-height:1.65}.note strong{color:var(--ink);white-space:nowrap}@media(max-width:900px){.top,.hero,.title,.note{display:flex;flex-direction:column;align-items:stretch}.metrics,.readouts,.flow,.two{grid-template-columns:1fr}.spec{overflow-x:auto}.row,.head{min-width:960px}.top h1{font-size:28px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="top">
+      <div><p class="eyebrow">A-SHARE OBJECTIVE INDICATOR TOOLBOX</p><h1>A股市场结构仪</h1></div>
+      <span class="pill">技术演示静态版 · 2026-08-19</span>
+    </section>
+    <section class="hero">
+      <div><div class="mark"><i></i><i></i><i></i><i></i></div><p>从成交拥挤度、市场宽度、杠杆参与度和成交活跃度四个维度，观察 A 股市场内部结构状态。本页面用于 GitHub 展示和技术沟通，数据为模拟值，计算口径按正式产品方案呈现。</p></div>
+      <div class="score"><span>结构画像</span><strong>68</strong><em>0-100 · 客观合成</em></div>
+    </section>
+    <section class="metrics">
+      <article class="card active"><span>全市场宽度</span><strong>61.2%</strong><em>覆盖面较广</em></article>
+      <article class="card"><span>大盘拥挤度</span><strong>46.8%</strong><em>接近警戒线</em></article>
+      <article class="card"><span>深市拥挤度</span><strong>48.2%</strong><em>中等偏高</em></article>
+      <article class="card"><span>创业板拥挤度</span><strong>51.6%</strong><em>接近高位</em></article>
+      <article class="card"><span>融资买入/成交额</span><strong>8.74%</strong><em>中等偏高</em></article>
+      <article class="card"><span>成交活跃度</span><strong>1.31x</strong><em>成交放大</em></article>
+    </section>
+    <section class="panel">
+      <div class="title"><h2>产品展示 Demo</h2><p>示例曲线展示全市场宽度、上证指数与成交额的同屏观察方式。</p></div>
+      <div class="chart"><div class="grid"></div><svg viewBox="0 0 1000 230" preserveAspectRatio="none"><path d="M0 165 C80 115 130 145 190 102 S320 152 390 85 S520 130 590 74 S720 152 800 88 S920 92 1000 122" fill="none" stroke="#2f73df" stroke-width="4"/><path d="M0 182 C85 172 145 178 220 138 S350 158 430 126 S560 116 650 134 S790 102 880 95 S955 120 1000 108" fill="none" stroke="#ef4b4b" stroke-width="3"/><path d="M0 205 C120 190 150 215 260 188 S410 205 520 172 S690 185 790 156 S900 134 1000 168 L1000 230 L0 230Z" fill="rgba(229,211,173,.62)"/></svg></div>
+      <div class="legend"><span><i class="dot blue"></i>全市场宽度</span><span><i class="dot red"></i>上证指数</span><span><i class="dot tan"></i>全市场成交额</span></div>
+      <div class="readouts"><div><span>MA周期</span><strong>20日</strong></div><div><span>距离观察线</span><strong>-8.8pct</strong></div><div><span>上涨家数占比</span><strong>58.7%</strong></div><div><span>更新时间</span><strong>收盘后</strong></div></div>
+    </section>
+    <section class="panel">
+      <div class="title"><h2>指标计算总表</h2><p>技术实现应先按指标维度落地日频结果，再供前端查询。</p></div>
+      <div class="spec"><div class="head"><span>指标</span><span>计算公式</span><span>输入字段</span><span>数据源建议</span><span>更新频率</span></div>
+        <div class="row"><strong>全市场宽度</strong><code>close &gt; MA_N 的全A有效股票数 / 全A有效股票数</code><span>close、交易状态、上市日期</span><span>Tushare daily / Wind / Choice</span><span>收盘后日频</span></div>
+        <div class="row"><strong>行业宽度</strong><code>行业内 close &gt; MA_N 股票数 / 行业内有效股票数</code><span>SW2021、行业成分、close</span><span>index_classify + index_member_all</span><span>收盘后；PIT口径</span></div>
+        <div class="row"><strong>大盘拥挤度</strong><code>全A成交额前5%股票成交额 / 全A总成交额</code><span>全A股票池、amount</span><span>Tushare daily.amount / Wind</span><span>收盘后</span></div>
+        <div class="row"><strong>深市拥挤度</strong><code>深市成交额前5%股票成交额 / 深市总成交额</code><span>深市股票池、amount</span><span>Tushare / Wind / Choice</span><span>收盘后</span></div>
+        <div class="row"><strong>创业板拥挤度</strong><code>创业板成交额前5%股票成交额 / 创业板总成交额</code><span>创业板股票池、amount</span><span>Tushare / Wind / Choice</span><span>收盘后</span></div>
+        <div class="row"><strong>融资买入/成交额</strong><code>沪深融资买入额合计 / 沪深A股成交额合计</code><span>融资买入额、市场成交额</span><span>交易所披露 / Tushare margin / Wind</span><span>T+1 上午校准</span></div>
+        <div class="row"><strong>成交活跃度</strong><code>当日全A成交额 / 过去120日全A日均成交额</code><span>全A成交额、滚动均值</span><span>交易所成交概况 / Tushare / Wind</span><span>收盘后</span></div>
+      </div>
+    </section>
+    <section class="panel"><div class="title"><h2>数据处理链路</h2><p>建议前端只消费聚合结果，不直接计算 MA、成分归属或成交额排名。</p></div><div class="flow"><div class="step"><span>01</span><strong>授权数据源</strong></div><div class="step"><span>02</span><strong>原始数据入库</strong></div><div class="step"><span>03</span><strong>有效样本处理</strong></div><div class="step"><span>04</span><strong>指标聚合计算</strong></div><div class="step"><span>05</span><strong>前端查询展示</strong></div></div></section>
+    <section class="two"><div class="panel"><div class="title"><h2>建议数据表</h2></div><div class="list"><div><code>fact_stock_daily</code><span>个股日行情：trade_date、ts_code、close、amount、is_trade。</span></div><div><code>dim_sw_industry</code><span>申万 SW2021 行业分类字典，包含 L1/L2/L3。</span></div><div><code>fact_sw_member_pit</code><span>申万行业成分历史表，支持按日期查询当时行业归属。</span></div><div><code>mart_structure_metric</code><span>面向前端的指标结果宽表。</span></div></div></div><div class="panel"><div class="title"><h2>质量校验</h2></div><div class="list"><div><code>样本覆盖</code><span>有效股票数、行业覆盖率不得异常下降。</span></div><div><code>成交额校验</code><span>个股成交额汇总需与交易所市场成交额接近。</span></div><div><code>极值校验</code><span>行业宽度连续出现 0% 或 100% 需标记复核。</span></div><div><code>两融校准</code><span>融资买入额以交易所 T+1 披露为准。</span></div></div></div></section>
+    <section class="panel note"><strong>客观说明</strong><p>本产品以日频客观统计指标为主。除特别标注外，指标于交易日收盘后更新；融资融券相关指标以交易所次交易日披露数据为准。盘中数据如展示，仅作为未确认估算值。本页不构成任何投资建议。</p></section>
+  </main>
+</body>
+</html>
