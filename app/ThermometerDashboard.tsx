@@ -27,15 +27,6 @@ type MetricConfig = {
   readouts: Array<{ label: string; value: string }>;
 };
 
-type TechSpec = {
-  formula: string;
-  inputs: string;
-  key: string;
-  name: string;
-  source: string;
-  update: string;
-};
-
 const rangeLabels: Record<RangeKey, string> = {
   all: "显示所有",
   "5y": "5年",
@@ -241,83 +232,6 @@ const styleGroups = [
   { color: "#e3a93e", group: "周期/资源", industries: ["农林牧渔", "基础化工", "钢铁", "有色金属", "煤炭", "石油石化"] },
   { color: "#ff7d4f", group: "消费", industries: ["家用电器", "食品饮料", "纺织服饰", "轻工制造", "商贸零售", "社会服务", "美容护理"] },
   { color: "#5b78d6", group: "科技/TMT", industries: ["电子", "计算机", "通信", "传媒"] },
-];
-
-const techSpecs: TechSpec[] = [
-  {
-    key: "breadth",
-    name: "全市场宽度",
-    formula: "close > MA_N 的全A有效股票数 / 全A有效交易股票数 × 100%",
-    inputs: "个股日线 close、交易状态、上市日期、MA5/10/20/60",
-    source: "Tushare daily / Wind AShareEODPrices / Choice 日行情",
-    update: "交易日收盘后，建议 16:30 后跑批",
-  },
-  {
-    key: "industryBreadth",
-    name: "行业宽度与热力图",
-    formula: "行业内 close > MA_N 的有效股票数 / 行业内有效交易股票数 × 100%",
-    inputs: "申万 SW2021 行业分类、行业成分、个股日线 close",
-    source: "Tushare index_classify + index_member_all / Wind 申万行业成分",
-    update: "交易日收盘后；行业归属需保留 PIT 历史口径",
-  },
-  {
-    key: "marketCrowding",
-    name: "大盘拥挤度",
-    formula: "全A成交额排名前 5% 股票成交额之和 / 全A股票总成交额 × 100%",
-    inputs: "全A股票池、个股成交额 amount、有效交易状态",
-    source: "Tushare daily.amount / Wind / Choice / iFinD",
-    update: "交易日收盘后，成交额完整后计算",
-  },
-  {
-    key: "szCrowding",
-    name: "深市拥挤度",
-    formula: "深市成交额排名前 5% 股票成交额之和 / 深市股票总成交额 × 100%",
-    inputs: "深市股票池、深交所主板/创业板成交额",
-    source: "Tushare daily + 股票上市市场字段 / Wind / Choice",
-    update: "交易日收盘后",
-  },
-  {
-    key: "cybCrowding",
-    name: "创业板拥挤度",
-    formula: "创业板成交额排名前 5% 股票成交额之和 / 创业板股票总成交额 × 100%",
-    inputs: "创业板股票池、个股成交额 amount",
-    source: "Tushare daily + market/list_status 字段 / Wind / Choice",
-    update: "交易日收盘后",
-  },
-  {
-    key: "marginBuy",
-    name: "融资买入/成交额",
-    formula: "沪深两市融资买入额合计 / 沪深A股成交额合计 × 100%",
-    inputs: "沪市融资买入额、深市融资买入额、沪深A股成交额",
-    source: "上交所/深交所融资融券披露、Tushare margin、Wind/Choice",
-    update: "交易所通常次交易日披露，建议 T+1 上午更新",
-  },
-  {
-    key: "turnover",
-    name: "成交活跃度",
-    formula: "当日全A成交额 / 过去 120 个交易日全A日均成交额",
-    inputs: "全A每日成交额、120日滚动均值",
-    source: "交易所成交概况 / Tushare daily.amount 汇总 / Wind / Choice",
-    update: "交易日收盘后",
-  },
-];
-
-const deliverySteps = [
-  "每日同步基础数据：交易日历、股票列表、个股日行情、行业分类和行业成分。",
-  "生成有效样本：剔除停牌、上市时间不足、缺失行情和无足够 MA 历史的股票。",
-  "计算指标明细：先落地个股级 MA、成交额排名、行业归属，再聚合到指标结果表。",
-  "生成展示数据：按指标输出曲线、热力图矩阵、风格极值和读数卡片。",
-  "增加质量校验：样本数、成交额合计、行业覆盖率、极端值和上一交易日环比波动。",
-];
-
-const dataTables = [
-  { name: "dim_trade_calendar", detail: "交易日历，控制跑批日期和 MA 滚动窗口。" },
-  { name: "dim_stock", detail: "股票基础信息，包含上市日期、交易所、板块、上市状态。" },
-  { name: "fact_stock_daily", detail: "个股日行情，至少包含 trade_date、ts_code、close、amount、is_trade。" },
-  { name: "dim_sw_industry", detail: "申万 SW2021 行业分类字典，包含 L1/L2/L3 和父级关系。" },
-  { name: "fact_sw_member_pit", detail: "申万行业成分历史表，必须支持按日期查询当时行业归属。" },
-  { name: "fact_margin_daily", detail: "沪深融资买入额、融资余额、融券余额等两融数据。" },
-  { name: "mart_structure_metric", detail: "面向前端的指标结果宽表，存放各指标日频结果和状态标签。" },
 ];
 
 function isCrowdingMetric(metric: MetricConfig) {
@@ -1271,7 +1185,6 @@ export function ThermometerDashboard() {
           <h1>A股市场结构仪</h1>
         </div>
         <div className="topbar-actions">
-          <a className="plain-link" href="/tech-demo">技术交付 Demo</a>
           <button className="icon-button" type="button" title="模拟刷新" aria-label="模拟刷新">↻</button>
         </div>
       </section>
@@ -1388,156 +1301,6 @@ export function ThermometerDashboard() {
         <p>
           本产品以日频客观统计指标为主。除特别标注外，指标于交易日收盘后更新；融资融券相关指标以交易所次交易日披露数据为准。
           盘中数据如展示，仅作为未确认估算值。本页仅展示客观统计结果和计算口径，不构成任何投资建议。
-        </p>
-      </section>
-    </main>
-  );
-}
-
-export function TechnicalDemoPage() {
-  return (
-    <main className="dashboard-shell tech-demo-shell">
-      <section className="topbar" aria-label="技术交付页状态栏">
-        <div>
-          <p className="eyebrow">TECHNICAL DELIVERY DEMO</p>
-          <h1>A股市场结构仪 · 技术交付 Demo</h1>
-        </div>
-        <a className="plain-link" href="/">返回产品页</a>
-      </section>
-
-      <section className="tech-hero">
-        <div>
-          <span className="tech-badge">日频指标体系</span>
-          <h2>数据口径、计算链路和更新频率</h2>
-          <p>
-            本页用于交付沟通：前端展示仍使用模拟数据，但公式、字段、数据源和更新节奏按正式产品落地口径组织。
-            技术实现时应以授权数据源和实际字段为准，并保留可追溯的历史行业归属。
-          </p>
-        </div>
-        <div className="tech-hero-card">
-          <span>推荐更新策略</span>
-          <strong>收盘后日频</strong>
-          <em>融资融券 T+1 校准</em>
-        </div>
-      </section>
-
-      <section className="tech-grid" aria-label="技术交付要点">
-        {[
-          ["指标数量", "7项", "宽度、拥挤度、两融参与度、成交活跃度"],
-          ["核心频率", "日频", "除特别标注外，交易日收盘后更新"],
-          ["行业口径", "SW2021", "市场宽度建议使用 PIT 行业归属"],
-          ["前端形态", "Dashboard", "卡片、曲线、热力图、极值面板"],
-        ].map(([label, value, desc]) => (
-          <article className="tech-kpi" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <p>{desc}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="tech-panel" aria-label="指标计算总表">
-        <div className="tech-section-title">
-          <h2>指标计算总表</h2>
-          <p>技术实现应先按指标维度落地日频结果，再供前端按日期、周期和指标类型查询。</p>
-        </div>
-        <div className="tech-spec-table">
-          <div className="tech-spec-head">
-            <span>指标</span>
-            <span>计算公式</span>
-            <span>输入字段</span>
-            <span>数据源建议</span>
-            <span>更新频率</span>
-          </div>
-          {techSpecs.map((item) => (
-            <div className="tech-spec-row" key={item.key}>
-              <strong>{item.name}</strong>
-              <code>{item.formula}</code>
-              <span>{item.inputs}</span>
-              <span>{item.source}</span>
-              <span>{item.update}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="tech-flow-panel" aria-label="数据处理链路">
-        <div className="tech-section-title">
-          <h2>数据处理链路</h2>
-          <p>建议按“原始层 → 明细层 → 聚合层 → 展示层”处理，避免前端承担复杂计算。</p>
-        </div>
-        <div className="tech-flow">
-          {["授权数据源", "原始数据入库", "有效样本处理", "指标聚合计算", "前端查询展示"].map((step, index) => (
-            <div className="tech-flow-step" key={step}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{step}</strong>
-            </div>
-          ))}
-        </div>
-        <div className="delivery-list">
-          {deliverySteps.map((step, index) => (
-            <p key={step}><strong>{index + 1}</strong>{step}</p>
-          ))}
-        </div>
-      </section>
-
-      <section className="tech-two-column">
-        <div className="tech-panel">
-          <div className="tech-section-title">
-            <h2>建议数据表</h2>
-            <p>表名为建议命名，技术实现可按现有数仓规范调整。</p>
-          </div>
-          <div className="tech-data-list">
-            {dataTables.map((item) => (
-              <div key={item.name}>
-                <code>{item.name}</code>
-                <span>{item.detail}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="tech-panel">
-          <div className="tech-section-title">
-            <h2>质量校验规则</h2>
-            <p>付费产品建议每天计算后写入校验日志，避免异常值直接展示。</p>
-          </div>
-          <div className="quality-checks">
-            {[
-              ["样本覆盖", "全A有效股票数、行业成分覆盖率不得异常下降。"],
-              ["成交额校验", "个股成交额汇总需与交易所市场成交额接近。"],
-              ["极值校验", "行业宽度连续出现 0% 或 100% 需标记复核。"],
-              ["两融校准", "融资买入额以交易所 T+1 披露为准，盘中估算需单独标注。"],
-              ["版本记录", "申万行业版本、成分变更和计算参数需可追溯。"],
-            ].map(([title, desc]) => (
-              <article key={title}>
-                <strong>{title}</strong>
-                <p>{desc}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="tech-panel" aria-label="前端接口建议">
-        <div className="tech-section-title">
-          <h2>前端接口建议</h2>
-          <p>前端只消费聚合结果，不直接计算 MA、行业成分或成交额排名。</p>
-        </div>
-        <pre className="api-block">{`GET /api/market-structure/summary?trade_date=2026-08-19
-返回指标卡片、结构评分、更新时间
-
-GET /api/market-structure/metric-series?metric=breadth&range=30d&ma=20
-返回曲线、热力图矩阵、风格极值、行情对比
-
-GET /api/market-structure/formula
-返回指标公式、样本范围、数据源和更新频率说明`}</pre>
-      </section>
-
-      <section className="compliance-note" aria-label="技术交付说明">
-        <strong>交付说明</strong>
-        <p>
-          本 demo 页用于技术沟通，不直接代表最终数据接口。正式上线前需确认数据源商用授权、交易所披露延迟、行业分类版本和历史成分归属口径。
         </p>
       </section>
     </main>
