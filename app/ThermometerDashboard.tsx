@@ -27,6 +27,15 @@ type MetricConfig = {
   readouts: Array<{ label: string; value: string }>;
 };
 
+type TechSpec = {
+  formula: string;
+  inputs: string;
+  key: string;
+  name: string;
+  source: string;
+  update: string;
+};
+
 const rangeLabels: Record<RangeKey, string> = {
   all: "显示所有",
   "5y": "5年",
@@ -42,8 +51,8 @@ const maWindowLabels: Record<MaWindow, string> = {
   60: "60日",
 };
 
-const breadthTotalDays = 168;
-const breadthEndDate = new Date(2026, 6, 28);
+const breadthTotalDays = 256;
+const breadthEndDate = new Date(2026, 7, 19);
 const oneDayMs = 24 * 60 * 60 * 1000;
 
 const metrics: MetricConfig[] = [
@@ -157,7 +166,7 @@ const metrics: MetricConfig[] = [
   },
   {
     key: "breadth",
-    name: "市场宽度",
+    name: "全市场宽度",
     value: "61.2%",
     unit: "%",
     warning: 70,
@@ -167,9 +176,11 @@ const metrics: MetricConfig[] = [
     state: "覆盖面较广",
     summary: "观察上涨覆盖面，而不是只看指数涨跌。",
     description: [
-      "市场宽度（Market Breadth）统计各申万行业板块中收盘价高于MA20的股票数量占比。热力图横向（X轴）为日期，展示行业宽度随时间的变化趋势；纵向（Y轴）为各申万行业，展示行业之间的强弱对比。",
-      "红色越深（数值越高），代表该行业中站上MA20的股票越多，行业短期趋势越强；蓝色越深（数值越低），则代表行业整体偏弱。",
-      "当热力图大面积偏红（超过70%的行业处于较高宽度），表明市场进入全面强势阶段；当大面积偏蓝（低于30%的行业走强），则往往是市场调整末期、情绪极度低迷的特征。",
+      "市场宽度是衡量市场涨跌参与广度的核心指标。它统计各行业中股价站上指定均线的股票占比，用于观察行情是由多数行业共同参与，还是主要由少数板块推动。",
+      "较健康的上涨行情通常伴随更多行业和个股同步走强。当大量行业板块的股票站上 MA20，说明市场上涨的覆盖面较广，内部结构相对扎实；反之，如果指数上涨但多数行业宽度回落，则说明市场上涨主要由少数板块贡献，内部扩散力度不足。",
+      "该指标的核心价值在于观察行业轮动。通过热力图，可以直观看到不同行业宽度随时间的变化：颜色由蓝转暖，代表该行业站上均线的股票占比提升；颜色由暖转蓝，代表行业内部走弱。结合原始值和变化值视图，可以更清楚地识别哪些行业正在转强、哪些行业正在转弱。",
+      "上方 MA 选择器支持切换 MA5、MA10、MA20、MA60。MA5、MA10 对短期变化更敏感，适合观察短线轮动；MA20、MA60 更平滑，适合观察行业中期趋势和市场整体扩散状态。",
+      "全市场宽度按股票数量统计，行业等权宽度则先计算各行业宽度后再等权平均。两者口径不同，因此数值可能存在差异。",
     ],
     formula: "各申万行业内收盘价高于MA20的股票数量 / 该行业有效交易股票数量",
     scope: "申万行业板块，有效交易股票，剔除停牌和上市时间过短样本",
@@ -225,11 +236,88 @@ const palette: Record<ToolKey, { line: string; fill: string }> = {
 
 const styleGroups = [
   { color: "#8e5bd1", group: "金融/公用", industries: ["公用事业", "交通运输", "房地产", "银行", "非银金融", "综合", "环保"] },
-  { color: "#ef5a64", group: "医药", industries: ["医药生物"] },
+  { color: "#ef5a64", group: "医药", industries: ["化学制药", "中药", "医疗器械", "医疗服务", "生物制品"] },
   { color: "#62a66f", group: "制造/新能源", industries: ["汽车", "建筑材料", "建筑装饰", "电力设备", "机械设备", "国防军工"] },
   { color: "#e3a93e", group: "周期/资源", industries: ["农林牧渔", "基础化工", "钢铁", "有色金属", "煤炭", "石油石化"] },
   { color: "#ff7d4f", group: "消费", industries: ["家用电器", "食品饮料", "纺织服饰", "轻工制造", "商贸零售", "社会服务", "美容护理"] },
   { color: "#5b78d6", group: "科技/TMT", industries: ["电子", "计算机", "通信", "传媒"] },
+];
+
+const techSpecs: TechSpec[] = [
+  {
+    key: "breadth",
+    name: "全市场宽度",
+    formula: "close > MA_N 的全A有效股票数 / 全A有效交易股票数 × 100%",
+    inputs: "个股日线 close、交易状态、上市日期、MA5/10/20/60",
+    source: "Tushare daily / Wind AShareEODPrices / Choice 日行情",
+    update: "交易日收盘后，建议 16:30 后跑批",
+  },
+  {
+    key: "industryBreadth",
+    name: "行业宽度与热力图",
+    formula: "行业内 close > MA_N 的有效股票数 / 行业内有效交易股票数 × 100%",
+    inputs: "申万 SW2021 行业分类、行业成分、个股日线 close",
+    source: "Tushare index_classify + index_member_all / Wind 申万行业成分",
+    update: "交易日收盘后；行业归属需保留 PIT 历史口径",
+  },
+  {
+    key: "marketCrowding",
+    name: "大盘拥挤度",
+    formula: "全A成交额排名前 5% 股票成交额之和 / 全A股票总成交额 × 100%",
+    inputs: "全A股票池、个股成交额 amount、有效交易状态",
+    source: "Tushare daily.amount / Wind / Choice / iFinD",
+    update: "交易日收盘后，成交额完整后计算",
+  },
+  {
+    key: "szCrowding",
+    name: "深市拥挤度",
+    formula: "深市成交额排名前 5% 股票成交额之和 / 深市股票总成交额 × 100%",
+    inputs: "深市股票池、深交所主板/创业板成交额",
+    source: "Tushare daily + 股票上市市场字段 / Wind / Choice",
+    update: "交易日收盘后",
+  },
+  {
+    key: "cybCrowding",
+    name: "创业板拥挤度",
+    formula: "创业板成交额排名前 5% 股票成交额之和 / 创业板股票总成交额 × 100%",
+    inputs: "创业板股票池、个股成交额 amount",
+    source: "Tushare daily + market/list_status 字段 / Wind / Choice",
+    update: "交易日收盘后",
+  },
+  {
+    key: "marginBuy",
+    name: "融资买入/成交额",
+    formula: "沪深两市融资买入额合计 / 沪深A股成交额合计 × 100%",
+    inputs: "沪市融资买入额、深市融资买入额、沪深A股成交额",
+    source: "上交所/深交所融资融券披露、Tushare margin、Wind/Choice",
+    update: "交易所通常次交易日披露，建议 T+1 上午更新",
+  },
+  {
+    key: "turnover",
+    name: "成交活跃度",
+    formula: "当日全A成交额 / 过去 120 个交易日全A日均成交额",
+    inputs: "全A每日成交额、120日滚动均值",
+    source: "交易所成交概况 / Tushare daily.amount 汇总 / Wind / Choice",
+    update: "交易日收盘后",
+  },
+];
+
+const deliverySteps = [
+  "每日同步基础数据：交易日历、股票列表、个股日行情、行业分类和行业成分。",
+  "生成有效样本：剔除停牌、上市时间不足、缺失行情和无足够 MA 历史的股票。",
+  "计算指标明细：先落地个股级 MA、成交额排名、行业归属，再聚合到指标结果表。",
+  "生成展示数据：按指标输出曲线、热力图矩阵、风格极值和读数卡片。",
+  "增加质量校验：样本数、成交额合计、行业覆盖率、极端值和上一交易日环比波动。",
+];
+
+const dataTables = [
+  { name: "dim_trade_calendar", detail: "交易日历，控制跑批日期和 MA 滚动窗口。" },
+  { name: "dim_stock", detail: "股票基础信息，包含上市日期、交易所、板块、上市状态。" },
+  { name: "fact_stock_daily", detail: "个股日行情，至少包含 trade_date、ts_code、close、amount、is_trade。" },
+  { name: "dim_sw_industry", detail: "申万 SW2021 行业分类字典，包含 L1/L2/L3 和父级关系。" },
+  { name: "fact_sw_member_pit", detail: "申万行业成分历史表，必须支持按日期查询当时行业归属。" },
+  { name: "fact_margin_daily", detail: "沪深融资买入额、融资余额、融券余额等两融数据。" },
+  { name: "mart_structure_metric", detail: "面向前端的指标结果宽表，存放各指标日频结果和状态标签。" },
 ];
 
 function isCrowdingMetric(metric: MetricConfig) {
@@ -304,7 +392,7 @@ function yearLabel(percent: number) {
   const startYear = 2011;
   const startMonth = 9;
   const endYear = 2026;
-  const endMonth = 7;
+  const endMonth = 8;
   const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
   const monthOffset = Math.round(totalMonths * (percent / 100));
   const absoluteMonth = startMonth + monthOffset;
@@ -396,13 +484,13 @@ function styleValue(groupIndex: number, industryIndex: number, column: number, c
   const cycle = Math.sin(progress * Math.PI * 6.2 + groupIndex * 0.8 + industryIndex * 0.3) * 24;
   const lateStyleLift = progress > 0.7 && (groupIndex === 0 || groupIndex === 1) ? (progress - 0.7) * 100 : 0;
   const techFade = progress > 0.58 && groupIndex === 5 ? -(progress - 0.58) * 70 : 0;
-  return Math.max(0, Math.min(100, Math.round(38 + groupBias + industryBias + cycle + lateStyleLift + techFade)));
+  return Math.max(6, Math.min(96, Math.round(38 + groupBias + industryBias + cycle + lateStyleLift + techFade)));
 }
 
 function marketBreadthValue(groupIndex: number, industryIndex: number, column: number, columns: number, start: number, end: number, maWindow: MaWindow) {
   const raw = styleValue(groupIndex, industryIndex, column, columns, start, end);
   const windowAdjustment = { 5: 12, 10: 7, 20: 0, 60: -8 }[maWindow];
-  return Math.max(0, Math.min(100, Math.round(raw + windowAdjustment)));
+  return Math.max(6, Math.min(96, Math.round(raw + windowAdjustment)));
 }
 
 function average(values: number[]) {
@@ -481,6 +569,97 @@ function TimeSliderControl({
   );
 }
 
+function StructureRadar() {
+  const axes = [
+    { label: "宽度", value: 61 },
+    { label: "拥挤", value: 94 },
+    { label: "杠杆", value: 62 },
+    { label: "活跃", value: 58 },
+  ];
+  const center = 76;
+  const radius = 48;
+  const pointFor = (index: number, value: number) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / axes.length;
+    const distance = radius * (value / 100);
+    return {
+      x: center + Math.cos(angle) * distance,
+      y: center + Math.sin(angle) * distance,
+    };
+  };
+  const ringPoints = (scale: number) =>
+    axes
+      .map((_, index) => {
+        const point = pointFor(index, scale);
+        return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+      })
+      .join(" ");
+  const shapePoints = axes.map((axis, index) => {
+    const point = pointFor(index, axis.value);
+    return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+  }).join(" ");
+  const zonePoints = [92, 70, 48].map((scale) => ringPoints(scale));
+
+  return (
+    <div className="structure-radar-card" aria-label="结构画像雷达图">
+      <div className="radar-heading">
+        <span>结构画像</span>
+        <strong>68</strong>
+      </div>
+      <svg className="structure-radar" viewBox="0 0 152 152" role="img" aria-label="宽度、拥挤、杠杆、活跃四维结构画像">
+        <defs>
+          <radialGradient id="radarGlow" cx="50%" cy="45%" r="62%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.96" />
+            <stop offset="58%" stopColor="#eaf3ff" stopOpacity="0.72" />
+            <stop offset="100%" stopColor="#d9e9ff" stopOpacity="0.42" />
+          </radialGradient>
+          <linearGradient id="radarShapeGradient" x1="22%" x2="86%" y1="18%" y2="88%">
+            <stop offset="0%" stopColor="#0b76de" stopOpacity="0.2" />
+            <stop offset="46%" stopColor="#2f9f78" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#e85c5c" stopOpacity="0.28" />
+          </linearGradient>
+          <filter id="radarSoftGlow" x="-35%" y="-35%" width="170%" height="170%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <circle className="radar-backdrop" cx={center} cy={center} r="62" />
+        {zonePoints.map((points, index) => (
+          <polygon className={`radar-zone zone-${index + 1}`} key={points} points={points} />
+        ))}
+        {[20, 40, 60, 80, 100].map((scale) => (
+          <polygon className="radar-ring" key={scale} points={ringPoints(scale)} />
+        ))}
+        {axes.map((axis, index) => {
+          const end = pointFor(index, 100);
+          const valuePoint = pointFor(index, axis.value);
+          return (
+            <g key={axis.label}>
+              <line className="radar-axis" x1={center} x2={end.x} y1={center} y2={end.y} />
+              <circle className="radar-dot" cx={valuePoint.x} cy={valuePoint.y} r="3" />
+              <text
+                className="radar-label"
+                dy={index === 0 ? "-8" : index === 2 ? "14" : "4"}
+                x={end.x}
+                y={end.y}
+                textAnchor={index === 1 ? "start" : index === 3 ? "end" : "middle"}
+              >
+                {axis.label}
+              </text>
+            </g>
+          );
+        })}
+        <polygon className="radar-shape-glow" points={shapePoints} />
+        <polygon className="radar-shape" points={shapePoints} />
+        <text className="radar-core-score" x={center} y={center + 5} textAnchor="middle">68</text>
+      </svg>
+      <em>0-100 · 客观合成</em>
+    </div>
+  );
+}
+
 function BreadthControlPanel({
   maWindow,
   timeWindow,
@@ -532,17 +711,17 @@ function BreadthControlPanel({
           {calendarOpen ? (
             <div className="calendar-popover" role="dialog" aria-label="日期区间选择">
               <div className="calendar-head">
-                <strong>七月 2026</strong>
+                <strong>八月 2026</strong>
                 <span>选择开始与结束日期</span>
               </div>
               <div className="date-input-grid">
                 <label>
                   <span>开始日期</span>
-                  <input max="2026-07-28" min="2026-02-10" onChange={(event) => setDraftStart(event.target.value)} type="date" value={draftStart} />
+                  <input max="2026-08-19" min="2025-12-06" onChange={(event) => setDraftStart(event.target.value)} type="date" value={draftStart} />
                 </label>
                 <label>
                   <span>结束日期</span>
-                  <input max="2026-07-28" min="2026-02-10" onChange={(event) => setDraftEnd(event.target.value)} type="date" value={draftEnd} />
+                  <input max="2026-08-19" min="2025-12-06" onChange={(event) => setDraftEnd(event.target.value)} type="date" value={draftEnd} />
                 </label>
               </div>
               <div className="calendar-actions">
@@ -626,6 +805,125 @@ function StyleExtremePanel({ maWindow, timeWindow }: { maWindow: MaWindow; timeW
   );
 }
 
+function BreadthTrendPanel({ dates, marketAverageValues, timeWindow }: { dates: string[]; marketAverageValues: number[]; timeWindow: TimeWindow }) {
+  const [activeIndex, setActiveIndex] = useState(marketAverageValues.length - 1);
+  const width = 1000;
+  const topChartTop = 28;
+  const topChartBottom = 208;
+  const bottomChartTop = 268;
+  const bottomChartBottom = 430;
+  const trendBreadthValues = marketAverageValues.map((value, index) => {
+    const progress = timeWindow.start / 100 + ((timeWindow.end - timeWindow.start) / 100) * (index / Math.max(marketAverageValues.length - 1, 1));
+    const wave = Math.sin(index * 0.72) * 9 + Math.sin(index * 1.85 + 0.4) * 5 + Math.cos(progress * Math.PI * 9) * 7;
+    const shock =
+      Math.exp(-Math.pow((index - 6) / 1.8, 2)) * -13 +
+      Math.exp(-Math.pow((index - 12) / 2.1, 2)) * 17 +
+      Math.exp(-Math.pow((index - 19) / 1.7, 2)) * -16 +
+      Math.exp(-Math.pow((index - 25) / 1.6, 2)) * 18;
+    return Math.max(8, Math.min(92, Math.round(value + wave + shock)));
+  });
+  const indexValues = trendBreadthValues.map((value, index) => {
+    const progress = index / Math.max(trendBreadthValues.length - 1, 1);
+    const downTrend = -260 * progress;
+    const swing = Math.sin(index * 0.55 + 0.7) * 95 + Math.sin(index * 1.37) * 42;
+    const rebound =
+      Math.exp(-Math.pow((index - 4) / 1.5, 2)) * 95 +
+      Math.exp(-Math.pow((index - 11) / 2.2, 2)) * 170 -
+      Math.exp(-Math.pow((index - 18) / 2.0, 2)) * 185 +
+      Math.exp(-Math.pow((index - 24) / 1.5, 2)) * 120;
+    const breadthPulse = (value - 50) * 4.5;
+    return Math.round(4070 + downTrend + swing + rebound + breadthPulse);
+  });
+  const minIndex = Math.min(...indexValues) - 40;
+  const maxIndex = Math.max(...indexValues) + 40;
+  const xFor = (index: number) => (index / Math.max(marketAverageValues.length - 1, 1)) * width;
+  const yIndex = (value: number) => topChartBottom - ((value - minIndex) / Math.max(maxIndex - minIndex, 1)) * (topChartBottom - topChartTop);
+  const yBreadth = (value: number) => bottomChartBottom - (value / 100) * (bottomChartBottom - bottomChartTop);
+  const indexPoints = indexValues.map((value, index) => ({ x: xFor(index), y: yIndex(value) }));
+  const breadthPoints = trendBreadthValues.map((value, index) => ({ x: xFor(index), y: yBreadth(value) }));
+  const indexPath = linePath(indexPoints);
+  const breadthPath = linePath(breadthPoints);
+  const indexArea = areaPath(indexPoints, topChartBottom);
+  const breadthArea = areaPath(breadthPoints, bottomChartBottom);
+  const activeX = xFor(activeIndex);
+  const activeIndexY = yIndex(indexValues[activeIndex]);
+  const activeBreadthY = yBreadth(trendBreadthValues[activeIndex]);
+  const tooltipX = Math.min(Math.max(activeX + 24, 620), 820);
+  const handleMove = (clientX: number, target: SVGSVGElement) => {
+    const rect = target.getBoundingClientRect();
+    const next = Math.round(((clientX - rect.left) / rect.width) * (marketAverageValues.length - 1));
+    setActiveIndex(Math.max(0, Math.min(marketAverageValues.length - 1, next)));
+  };
+
+  return (
+    <section className="breadth-trend-panel" aria-label="行情与趋势对比">
+      <div className="trend-title">
+        <div>
+          <strong>行情与趋势对比</strong>
+          <span>上证指数与行业等权宽度</span>
+        </div>
+        <div className="chart-legend">
+          <span><i className="legend-dot red" />上证指数</span>
+          <span><i className="legend-dot trend-blue" />行业等权宽度</span>
+        </div>
+      </div>
+      <svg
+        className="breadth-trend-chart"
+        viewBox={`0 0 ${width} 460`}
+        role="img"
+        aria-label="上证指数与行业等权宽度趋势对比"
+        onMouseMove={(event) => handleMove(event.clientX, event.currentTarget)}
+        onTouchMove={(event) => {
+          if (event.touches[0]) handleMove(event.touches[0].clientX, event.currentTarget);
+        }}
+      >
+        <defs>
+          <linearGradient id="trendIndexArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#ff6b6b" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#ff6b6b" stopOpacity="0.02" />
+          </linearGradient>
+          <linearGradient id="trendBreadthArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#5b7ee5" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#5b7ee5" stopOpacity="0.03" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+          const y = topChartTop + tick * (topChartBottom - topChartTop);
+          return <line className="grid-line faint" key={`top-${tick}`} x1="40" x2={width - 24} y1={y} y2={y} />;
+        })}
+        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+          const y = bottomChartTop + tick * (bottomChartBottom - bottomChartTop);
+          return <line className="grid-line faint" key={`bottom-${tick}`} x1="40" x2={width - 24} y1={y} y2={y} />;
+        })}
+        <text className="trend-axis-label red" x="14" y="22">上证指数</text>
+        <text className="trend-axis-label blue" x="14" y="258">行业等权宽度</text>
+        <path className="trend-area" d={indexArea} fill="url(#trendIndexArea)" />
+        <path className="trend-line index" d={indexPath} />
+        <path className="trend-area" d={breadthArea} fill="url(#trendBreadthArea)" />
+        <path className="trend-line breadth" d={breadthPath} />
+        {[0, 5, 10, 15, 20, 25, 29].map((index) => (
+          <text className="trend-date" key={dates[index]} x={xFor(index)} y="452" textAnchor={index === 0 ? "start" : index === 29 ? "end" : "middle"}>
+            {dates[index].slice(5).replace("/", "-")}
+          </text>
+        ))}
+        <line className="trend-crosshair" x1={activeX} x2={activeX} y1={topChartTop} y2={bottomChartBottom} />
+        <circle className="trend-point index" cx={activeX} cy={activeIndexY} r="4.5" />
+        <circle className="trend-point breadth" cx={activeX} cy={activeBreadthY} r="4.5" />
+        <g className="trend-tooltip" transform={`translate(${tooltipX} 122)`}>
+          <rect height="108" rx="8" width="170" />
+          <text className="tooltip-date" x="18" y="30">{dates[activeIndex].replaceAll("/", "-")}</text>
+          <circle cx="22" cy="58" r="5" fill="#ff6b6b" />
+          <text x="36" y="64">上证指数</text>
+          <text className="tooltip-value" x="148" y="64">{indexValues[activeIndex]}</text>
+          <circle cx="22" cy="88" r="5" fill="#5b7ee5" />
+          <text x="36" y="94">行业等权</text>
+          <text className="tooltip-value" x="148" y="94">{trendBreadthValues[activeIndex]}</text>
+        </g>
+      </svg>
+    </section>
+  );
+}
+
 function BreadthHeatmap({
   metric,
   maWindow,
@@ -698,7 +996,7 @@ function BreadthHeatmap({
             <>
               <span><i className="legend-dot heat-red" />走强</span>
               <span><i className="legend-dot heat-teal" />走弱</span>
-              <span>每格 = 今日值 - 前一日值</span>
+              <span>每格 = 最近1日MA均值 - 此前1日MA均值</span>
             </>
           )}
         </div>
@@ -784,6 +1082,7 @@ function BreadthHeatmap({
           })}
         </div>
       </div>
+      <BreadthTrendPanel dates={dateTicks} marketAverageValues={marketAverageValues} timeWindow={timeWindow} />
       <div className="chart-readout">
         {[
           { label: "MA周期", value: maWindowLabels[maWindow] },
@@ -933,6 +1232,7 @@ export function ThermometerDashboard() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(defaultBreadthWindow());
   const [maWindow, setMaWindow] = useState<MaWindow>(20);
   const [activeKey, setActiveKey] = useState<ToolKey>("breadth");
+  const [explainExpanded, setExplainExpanded] = useState(false);
   const activeMetric = metrics.find((metric) => metric.key === activeKey) ?? metrics[0];
   const orderedMetrics = [
     "breadth",
@@ -952,6 +1252,7 @@ export function ThermometerDashboard() {
   };
   const handleMetricChange = (nextKey: ToolKey) => {
     setActiveKey(nextKey);
+    setExplainExpanded(false);
     if (nextKey === "breadth") {
       setRange("all");
       setTimeWindow(defaultBreadthWindow());
@@ -969,7 +1270,10 @@ export function ThermometerDashboard() {
           <p className="eyebrow">A-SHARE OBJECTIVE INDICATOR TOOLBOX</p>
           <h1>A股市场结构仪</h1>
         </div>
-        <button className="icon-button" type="button" title="模拟刷新" aria-label="模拟刷新">↻</button>
+        <div className="topbar-actions">
+          <a className="plain-link" href="/tech-demo">技术交付 Demo</a>
+          <button className="icon-button" type="button" title="模拟刷新" aria-label="模拟刷新">↻</button>
+        </div>
       </section>
 
       <section className="overview-panel" aria-label="总览">
@@ -982,11 +1286,7 @@ export function ThermometerDashboard() {
           </div>
           <p>从成交拥挤度、市场宽度、杠杆参与度和成交活跃度四个维度，观察 A 股市场内部结构状态。</p>
         </div>
-        <div className="structure-score">
-          <span>结构评分</span>
-          <strong>68</strong>
-          <em>0-100 · 客观合成</em>
-        </div>
+        <StructureRadar />
       </section>
 
       <section className="metric-switcher" aria-label="指标选择">
@@ -1015,11 +1315,16 @@ export function ThermometerDashboard() {
 
       <section className="explain-box" aria-label={`${activeMetric.name}说明`}>
         <strong>说明</strong>
-        <div className="explain-content">
-          {(Array.isArray(activeMetric.description) ? activeMetric.description : [activeMetric.description]).map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-          <p>本页仅展示客观统计结果和计算口径，不构成任何投资建议。</p>
+        <div className="explain-content-wrap">
+          <div className={`explain-content ${explainExpanded ? "expanded" : ""}`}>
+            {(Array.isArray(activeMetric.description) ? activeMetric.description : [activeMetric.description]).map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+            <p>本页仅展示客观统计结果和计算口径，不构成任何投资建议。</p>
+          </div>
+          <button className="explain-toggle" onClick={() => setExplainExpanded((expanded) => !expanded)} type="button">
+            {explainExpanded ? "收起" : "展开"}
+          </button>
         </div>
       </section>
 
@@ -1068,7 +1373,7 @@ export function ThermometerDashboard() {
             ["当前值", activeMetric.value],
             ["观察线", `${activeMetric.warning}${activeMetric.unit}`],
             ["样本范围", activeMetric.scope],
-            ["更新时间", "2026-07-28 15:10，模拟数据"],
+            ["更新时间", "2026-08-19 15:10，模拟数据"],
           ].map(([label, value]) => (
             <div className="formula-row" key={label}>
               <span>{label}</span>
@@ -1083,6 +1388,156 @@ export function ThermometerDashboard() {
         <p>
           本产品以日频客观统计指标为主。除特别标注外，指标于交易日收盘后更新；融资融券相关指标以交易所次交易日披露数据为准。
           盘中数据如展示，仅作为未确认估算值。本页仅展示客观统计结果和计算口径，不构成任何投资建议。
+        </p>
+      </section>
+    </main>
+  );
+}
+
+export function TechnicalDemoPage() {
+  return (
+    <main className="dashboard-shell tech-demo-shell">
+      <section className="topbar" aria-label="技术交付页状态栏">
+        <div>
+          <p className="eyebrow">TECHNICAL DELIVERY DEMO</p>
+          <h1>A股市场结构仪 · 技术交付 Demo</h1>
+        </div>
+        <a className="plain-link" href="/">返回产品页</a>
+      </section>
+
+      <section className="tech-hero">
+        <div>
+          <span className="tech-badge">日频指标体系</span>
+          <h2>数据口径、计算链路和更新频率</h2>
+          <p>
+            本页用于交付沟通：前端展示仍使用模拟数据，但公式、字段、数据源和更新节奏按正式产品落地口径组织。
+            技术实现时应以授权数据源和实际字段为准，并保留可追溯的历史行业归属。
+          </p>
+        </div>
+        <div className="tech-hero-card">
+          <span>推荐更新策略</span>
+          <strong>收盘后日频</strong>
+          <em>融资融券 T+1 校准</em>
+        </div>
+      </section>
+
+      <section className="tech-grid" aria-label="技术交付要点">
+        {[
+          ["指标数量", "7项", "宽度、拥挤度、两融参与度、成交活跃度"],
+          ["核心频率", "日频", "除特别标注外，交易日收盘后更新"],
+          ["行业口径", "SW2021", "市场宽度建议使用 PIT 行业归属"],
+          ["前端形态", "Dashboard", "卡片、曲线、热力图、极值面板"],
+        ].map(([label, value, desc]) => (
+          <article className="tech-kpi" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <p>{desc}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="tech-panel" aria-label="指标计算总表">
+        <div className="tech-section-title">
+          <h2>指标计算总表</h2>
+          <p>技术实现应先按指标维度落地日频结果，再供前端按日期、周期和指标类型查询。</p>
+        </div>
+        <div className="tech-spec-table">
+          <div className="tech-spec-head">
+            <span>指标</span>
+            <span>计算公式</span>
+            <span>输入字段</span>
+            <span>数据源建议</span>
+            <span>更新频率</span>
+          </div>
+          {techSpecs.map((item) => (
+            <div className="tech-spec-row" key={item.key}>
+              <strong>{item.name}</strong>
+              <code>{item.formula}</code>
+              <span>{item.inputs}</span>
+              <span>{item.source}</span>
+              <span>{item.update}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="tech-flow-panel" aria-label="数据处理链路">
+        <div className="tech-section-title">
+          <h2>数据处理链路</h2>
+          <p>建议按“原始层 → 明细层 → 聚合层 → 展示层”处理，避免前端承担复杂计算。</p>
+        </div>
+        <div className="tech-flow">
+          {["授权数据源", "原始数据入库", "有效样本处理", "指标聚合计算", "前端查询展示"].map((step, index) => (
+            <div className="tech-flow-step" key={step}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{step}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="delivery-list">
+          {deliverySteps.map((step, index) => (
+            <p key={step}><strong>{index + 1}</strong>{step}</p>
+          ))}
+        </div>
+      </section>
+
+      <section className="tech-two-column">
+        <div className="tech-panel">
+          <div className="tech-section-title">
+            <h2>建议数据表</h2>
+            <p>表名为建议命名，技术实现可按现有数仓规范调整。</p>
+          </div>
+          <div className="tech-data-list">
+            {dataTables.map((item) => (
+              <div key={item.name}>
+                <code>{item.name}</code>
+                <span>{item.detail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="tech-panel">
+          <div className="tech-section-title">
+            <h2>质量校验规则</h2>
+            <p>付费产品建议每天计算后写入校验日志，避免异常值直接展示。</p>
+          </div>
+          <div className="quality-checks">
+            {[
+              ["样本覆盖", "全A有效股票数、行业成分覆盖率不得异常下降。"],
+              ["成交额校验", "个股成交额汇总需与交易所市场成交额接近。"],
+              ["极值校验", "行业宽度连续出现 0% 或 100% 需标记复核。"],
+              ["两融校准", "融资买入额以交易所 T+1 披露为准，盘中估算需单独标注。"],
+              ["版本记录", "申万行业版本、成分变更和计算参数需可追溯。"],
+            ].map(([title, desc]) => (
+              <article key={title}>
+                <strong>{title}</strong>
+                <p>{desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="tech-panel" aria-label="前端接口建议">
+        <div className="tech-section-title">
+          <h2>前端接口建议</h2>
+          <p>前端只消费聚合结果，不直接计算 MA、行业成分或成交额排名。</p>
+        </div>
+        <pre className="api-block">{`GET /api/market-structure/summary?trade_date=2026-08-19
+返回指标卡片、结构评分、更新时间
+
+GET /api/market-structure/metric-series?metric=breadth&range=30d&ma=20
+返回曲线、热力图矩阵、风格极值、行情对比
+
+GET /api/market-structure/formula
+返回指标公式、样本范围、数据源和更新频率说明`}</pre>
+      </section>
+
+      <section className="compliance-note" aria-label="技术交付说明">
+        <strong>交付说明</strong>
+        <p>
+          本 demo 页用于技术沟通，不直接代表最终数据接口。正式上线前需确认数据源商用授权、交易所披露延迟、行业分类版本和历史成分归属口径。
         </p>
       </section>
     </main>
